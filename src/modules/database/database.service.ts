@@ -1,6 +1,8 @@
-import { OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
+import { OnApplicationShutdown } from '@nestjs/common';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+
+import * as schema from './schemas';
 
 export class DatabaseService implements OnApplicationShutdown {
   private readonly pool = new Pool({
@@ -11,7 +13,7 @@ export class DatabaseService implements OnApplicationShutdown {
 
   public readonly db = drizzle({
     client: this.pool,
-    // schema
+    schema,
     casing: 'snake_case',
   });
 
