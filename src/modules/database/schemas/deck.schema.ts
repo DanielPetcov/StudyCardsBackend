@@ -8,13 +8,13 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import { deckStatuses, languages } from './enums';
-import { usersTable } from './users.schema';
+import { user } from './user.schema';
 
-export const decksTable = pgTable('decks', {
+export const deck = pgTable('deck', {
   id: uuid().defaultRandom().primaryKey(),
 
-  userId: uuid()
-    .references(() => usersTable.id, { onDelete: 'cascade' })
+  userId: text()
+    .references(() => user.id, { onDelete: 'cascade' })
     .notNull(),
 
   title: varchar({ length: 255 }).notNull(),

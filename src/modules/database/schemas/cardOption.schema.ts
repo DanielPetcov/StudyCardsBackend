@@ -1,11 +1,11 @@
 import { pgTable, uuid, text, boolean } from 'drizzle-orm/pg-core';
 
-import { cardsTable } from './card.schema';
+import { card } from './card.schema';
 
-export const cardOptionsTable = pgTable('card_options', {
+export const cardOption = pgTable('card_option', {
   id: uuid().defaultRandom().primaryKey(),
   cardId: uuid()
-    .references(() => cardsTable.id, { onDelete: 'cascade' })
+    .references(() => card.id, { onDelete: 'cascade' })
     .notNull(),
 
   text: text().notNull(),
