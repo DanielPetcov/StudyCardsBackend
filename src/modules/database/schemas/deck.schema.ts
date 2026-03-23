@@ -21,7 +21,7 @@ export const deck = pgTable('deck', {
   description: text(),
 
   pdfUrl: text().notNull(),
-  cardCount: integer(),
+  cardCount: integer().notNull(),
 
   language: languages().notNull().default('ro'),
   status: deckStatuses().notNull().default('processing'),

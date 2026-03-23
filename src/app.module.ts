@@ -6,11 +6,14 @@ import { AuthModule } from '@thallesp/nestjs-better-auth';
 
 import { DatabaseModule } from './modules/database/database.module';
 import { DeckModule } from './modules/deck/deck.module';
+import { AIModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
     DatabaseModule,
     DeckModule,
+    AIModule,
+
     AuthModule.forRoot({ auth }),
     ConfigModule.forRoot({ isGlobal: true }),
   ],
