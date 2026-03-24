@@ -21,10 +21,10 @@ export const deck = pgTable('deck', {
   description: text(),
 
   pdfUrl: text().notNull(),
-  cardCount: integer().notNull(),
+  cardCount: integer().notNull().default(0),
 
   language: languages().notNull().default('ro'),
   status: deckStatuses().notNull().default('processing'),
 
-  createdAt: timestamp().defaultNow(),
+  createdAt: timestamp().defaultNow().notNull(),
 });

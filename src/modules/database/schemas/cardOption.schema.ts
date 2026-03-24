@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, boolean, integer } from 'drizzle-orm/pg-core';
 
 import { card } from './card.schema';
 
@@ -11,4 +11,5 @@ export const cardOption = pgTable('card_option', {
   text: text().notNull(),
   isCorrect: boolean().notNull(),
   explanation: text(),
+  order: integer().notNull().default(0),
 });

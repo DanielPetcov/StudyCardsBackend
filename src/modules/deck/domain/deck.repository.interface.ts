@@ -1,7 +1,9 @@
-import { DeckEntity } from './deck.entity';
-import { CreateDeckDto } from './dto/createDeckDto';
+import { DeckStatusesEnum } from '@/common/enums';
 
 export abstract class IDeckRepository {
-  abstract getAll(userId: string): Promise<DeckEntity[]>;
-  abstract create(dto: CreateDeckDto): Promise<DeckEntity>;
+  abstract create(userId: string, dto);
+  abstract findAllByUser(userId: string);
+  abstract findById(id: string, userId: string);
+  abstract updateStatus(id: string, status: DeckStatusesEnum);
+  abstract delete(id: string, userId: string);
 }

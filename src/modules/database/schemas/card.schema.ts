@@ -13,5 +13,5 @@ export const card = pgTable('card', {
   explanation: text().notNull(),
 
   difficulty: cardDifficulties().notNull(),
-  order: integer().notNull(),
+  order: integer().notNull().default(0),
 });

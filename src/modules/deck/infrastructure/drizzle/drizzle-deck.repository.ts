@@ -1,19 +1,27 @@
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from 'src/modules/database/database.service';
 
-import { DeckEntity } from '@_modules/deck/domain/deck.entity';
-import { CreateDeckDto } from '@_modules/deck/domain/dto/createDeckDto';
+import { DeckStatusesEnum } from '@/common/enums';
 
-import { IDeckRepository } from '@_modules/deck/domain/deck.repository.interface';
+import { DatabaseService } from '@/modules/database/database.service';
+import { IDeckRepository } from '@/modules/deck/domain/deck.repository.interface';
 
 @Injectable()
 export class DrizzleDeckRepository implements IDeckRepository {
   constructor(private readonly _db: DatabaseService) {}
-  getAll(userId: string): Promise<DeckEntity[]> {
+
+  create(userId: string, dto: any) {
     throw new Error('Method not implemented.');
   }
-
-  create(dto: CreateDeckDto): Promise<DeckEntity> {
+  findAllByUser(userId: string) {
+    throw new Error('Method not implemented.');
+  }
+  findById(id: string, userId: string) {
+    throw new Error('Method not implemented.');
+  }
+  updateStatus(id: string, status: DeckStatusesEnum) {
+    throw new Error('Method not implemented.');
+  }
+  delete(id: string, userId: string) {
     throw new Error('Method not implemented.');
   }
 }
