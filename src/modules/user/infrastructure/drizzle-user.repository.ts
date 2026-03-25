@@ -2,12 +2,28 @@ import { PlansEnum } from '@/common/enums';
 
 import { DatabaseService } from '@/modules/database/database.service';
 import { IUserRepository } from '@/modules/user/domain/user.repository.interface';
+import { user } from '@/modules/database/schemas';
+import { eq } from 'drizzle-orm';
+import { Injectable } from '@nestjs/common';
 
+@Injectable()
 export class DrizzleUserRepository implements IUserRepository {
   constructor(private readonly _db: DatabaseService) {}
 
-  findById(id: string) {
-    throw new Error('Method not implemented.');
+  async findById(id: string) {
+    try {
+      const rows = await this._db.db
+        .select()
+        .from(user)
+        .where(eq(user.id, id))
+        .limit(1);
+
+      return rows[0] ?? null;
+    } catch (error) {
+      console.error('findById error:', error);
+      console.error('cause:', error instanceof Error ? error.cause : undefined);
+      throw error;
+    }
   }
   updatePlan(id: string, plan: PlansEnum) {
     throw new Error('Method not implemented.');
