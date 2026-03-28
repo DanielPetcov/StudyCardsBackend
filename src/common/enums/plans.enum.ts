@@ -1,2 +1,6 @@
 const plans = ['free', 'pro'] as const;
-export type PlansEnum = (typeof plans)[number];
+export type PlansEnumType = (typeof plans)[number];
+export enum PlansEnum {
+  FREE = 'free',
+  PRO = 'pro',
+}

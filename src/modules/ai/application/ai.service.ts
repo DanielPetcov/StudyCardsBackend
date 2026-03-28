@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotImplementedException } from '@nestjs/common';
 
 import { OpenRouter } from '@openrouter/sdk';
 
-import { LanguagesEnum } from '@/common/enums';
+import { DeckIconEnum, LanguagesEnum } from '@/common/enums';
+import { CardResponseDto } from '@/modules/card/domain/dto/card-response.dto';
 
 @Injectable()
 export class AiService {
@@ -12,13 +13,15 @@ export class AiService {
 
   private readonly model = 'google/gemini-2.5-flash-lite';
 
-  async generateCards(
-    pdfBuffer: Buffer,
+  async analyzeDeck(
+    buffer: Buffer,
     language: LanguagesEnum,
-    cardCount: number,
-  ) {}
-
-  buildPrompt(language: LanguagesEnum, cardCount): string {
-    return '';
+  ): Promise<{
+    title: string;
+    description: string;
+    icon: DeckIconEnum;
+    cards: CardResponseDto[];
+  }> {
+    throw new NotImplementedException();
   }
 }

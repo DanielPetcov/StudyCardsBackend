@@ -1,7 +1,8 @@
 import { pgTable, uuid, text, integer } from 'drizzle-orm/pg-core';
 
 import { deck } from './deck.schema';
-import { cardDifficulties } from './enums';
+
+import { cardDifficultiesEnum } from './enums';
 
 export const card = pgTable('card', {
   id: uuid().defaultRandom().primaryKey(),
@@ -12,6 +13,6 @@ export const card = pgTable('card', {
   question: text().notNull(),
   explanation: text().notNull(),
 
-  difficulty: cardDifficulties().notNull(),
+  difficulty: cardDifficultiesEnum().notNull(),
   order: integer().notNull().default(0),
 });

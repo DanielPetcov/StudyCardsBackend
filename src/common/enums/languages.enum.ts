@@ -1,2 +1,7 @@
 const languages = ['ro', 'ru', 'en'] as const;
-export type LanguagesEnum = (typeof languages)[number];
+export type LanguagesEnumType = (typeof languages)[number];
+export enum LanguagesEnum {
+  RO = 'ro',
+  RU = 'ru',
+  EN = 'en',
+}
