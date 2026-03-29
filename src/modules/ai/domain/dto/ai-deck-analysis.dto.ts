@@ -1,10 +1,10 @@
-import { DeckIconEnum } from '@/common/enums';
+import { DeckIconName } from '@/common/enums';
 
 // What AI returns
 export class AIDeckAnalysisDto {
   title: string;
   description: string;
-  icon: DeckIconEnum;
+  icon: DeckIconName;
   cards: AICardDto[];
 }
 

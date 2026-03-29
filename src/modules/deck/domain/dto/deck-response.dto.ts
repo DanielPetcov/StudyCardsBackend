@@ -1,17 +1,22 @@
-import { DeckStatusesEnum, LanguagesEnum, DeckIconEnum } from '@/common/enums';
+import type {
+  LanguageType,
+  DeckIconName,
+  DeckStatuseType,
+} from '@/common/enums';
 
 export class DeckResponseDto {
   id: string;
   title: string;
   description: string | null;
 
-  pdfUrl: string;
+  pdfUrl: string; // ⭐ Signed URL generated on-the-fly
+  fileId: string; // ⭐ Added for reference
   cardCount: number;
   cardsStudied: number;
 
-  language: LanguagesEnum;
-  status: DeckStatusesEnum;
-  icon: DeckIconEnum; // ⭐ Added
+  language: LanguageType;
+  status: DeckStatuseType;
+  icon: DeckIconName; // ⭐ Added
 
   starred: boolean; // ⭐ Added
   archived: boolean; // ⭐ Added

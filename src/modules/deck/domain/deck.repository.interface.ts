@@ -1,19 +1,17 @@
-import { DeckStatusesEnum } from '@/common/enums';
+import { DeckStatuseType } from '@/common/enums';
 import { DeckEntity, DeckInsert } from '@/modules/database/schemas';
 import { UpdateDeckDto } from './dto/update-deck.dto';
 
-export abstract class IDeckRepository {
-  abstract create(deckInsert: DeckInsert): Promise<DeckEntity>;
-  abstract findAllByUser(userId: string): Promise<DeckEntity[]>;
-  abstract findById(id: string, userId: string): Promise<DeckEntity>;
-  abstract update(
+export const DECK_REPOSITORY = Symbol('DECK_REPOSITORY');
+export interface IDeckRepository {
+  create(deckInsert: DeckInsert): Promise<DeckEntity>;
+  findAllByUser(userId: string): Promise<DeckEntity[]>;
+  findById(id: string, userId: string): Promise<DeckEntity | null>;
+  update(
     id: string,
     userId: string,
     dto: UpdateDeckDto,
-  ): Promise<DeckEntity>;
-  abstract updateStatus(
-    id: string,
-    status: DeckStatusesEnum,
-  ): Promise<DeckEntity>;
-  abstract delete(id: string, userId: string);
+  ): Promise<DeckEntity | null>;
+  updateStatus(id: string, status: DeckStatuseType): Promise<DeckEntity | null>;
+  delete(id: string, userId: string): Promise<DeckEntity | null>;
 }

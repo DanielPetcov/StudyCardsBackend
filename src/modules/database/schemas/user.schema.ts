@@ -7,7 +7,6 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import { languagesEnum, plansEnum } from './enums';
-import { file } from './file.schema';
 
 export const user = pgTable('user', {
   // better auth fields - don't touch these
@@ -15,7 +14,7 @@ export const user = pgTable('user', {
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
   emailVerified: boolean('email_verified').default(false).notNull(),
-  image: text('image').references(() => file.id),
+  image: text('image'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at')
     .defaultNow()

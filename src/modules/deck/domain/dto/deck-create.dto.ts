@@ -2,12 +2,17 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
-  IsEnum,
+  IsIn,
   MaxLength,
-  IsUrl,
   IsNumber,
+  IsUUID,
 } from 'class-validator';
-import { LanguagesEnum, DeckIconEnum } from '@/common/enums';
+import {
+  type LanguageType,
+  languages,
+  type DeckIconName,
+  deckIconNames,
+} from '@/common/enums';
 
 export class CreateDeckDto {
   @IsString()
@@ -19,17 +24,17 @@ export class CreateDeckDto {
   @IsOptional()
   description?: string;
 
-  @IsUrl()
+  @IsUUID()
   @IsNotEmpty()
-  pdfUrl: string;
+  fileId: string; // ⭐ Changed from pdfUrl to fileId
 
-  @IsEnum(LanguagesEnum)
+  @IsIn(languages)
   @IsOptional()
-  language?: LanguagesEnum;
+  language?: LanguageType;
 
-  @IsEnum(DeckIconEnum)
+  @IsIn(deckIconNames)
   @IsOptional()
-  icon?: DeckIconEnum;
+  icon?: DeckIconName;
 
   @IsNumber()
   @IsOptional()

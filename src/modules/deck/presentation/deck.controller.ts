@@ -1,3 +1,4 @@
+// modules/deck/deck.controller.ts
 import {
   Controller,
   Get,
@@ -7,41 +8,65 @@ import {
   Param,
   Body,
   Req,
-  UseGuards,
-  UnauthorizedException,
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
-  PayloadTooLargeException,
+  forwardRef,
+  Inject,
+  Logger,
 } from '@nestjs/common';
-import { AuthGuard } from '@thallesp/nestjs-better-auth';
-
-import { DeckService } from '@/modules/deck/application/deck.service';
-import { DeckResponseDto } from '@/modules/deck/domain/dto/deck-response.dto';
-import { CreateDeckDto } from '@/modules/deck/domain/dto/deck-create.dto';
-import { UpdateDeckDto } from '@/modules/deck/domain/dto/update-deck.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { UploadDeckDto } from '../domain/dto/upload-deck.dto';
 
-const allowedTypes = new Set<string>(['application/pdf']);
+import { DeckService } from '../application/deck.service';
+import { CardService } from '@/modules/card/application/card.service';
+
+import { DeckResponseDto } from '../domain/dto/deck-response.dto';
+import { UploadDeckDto } from '../domain/dto/upload-deck.dto';
+import { UpdateDeckDto } from '../domain/dto/update-deck.dto';
+
+import { CardResponseDto } from '@/modules/card/domain/dto/card-response.dto';
 
 @Controller('decks')
-@UseGuards(AuthGuard)
 export class DeckController {
-  constructor(private readonly _service: DeckService) {}
+  constructor(
+    private readonly _deckService: DeckService,
+    @Inject(forwardRef(() => CardService))
+    private readonly _cardService: CardService, // ⭐ Inject CardService
+  ) {}
+
+  private readonly logger = new Logger(DeckController.name);
+
+  @Get()
+  async getAll(@Req() req): Promise<DeckResponseDto[]> {
+    const userId = req.user.id;
+    this.logger.log(`[DECK CONTROLLER] GET | userId=${userId}`);
+    return this._deckService.findAllByUser(userId);
+  }
+
+  @Get(':id')
+  async getById(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req,
+  ): Promise<DeckResponseDto> {
+    const userId = req.user.id;
+    this.logger.log(
+      `[DECK CONTROLLER] GET/:id | userId=${userId} | deckId=${id}`,
+    );
+    return this._deckService.findById(id, userId);
+  }
 
   @Post('upload')
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {
-        fileSize: 100 * 1024 * 1024,
+        fileSize: 50 * 1024 * 1024, // 50MB max
       },
       fileFilter: (req, file, cb) => {
-        if (!allowedTypes.has(file.mimetype)) {
-          cb(new BadRequestException('This file type is not allowed'), false);
+        if (file.mimetype !== 'application/pdf') {
+          cb(new BadRequestException('Only PDF files are allowed'), false);
         }
         cb(null, true);
       },
@@ -51,76 +76,49 @@ export class DeckController {
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: UploadDeckDto,
     @Req() req,
-  ) {
+  ): Promise<DeckResponseDto> {
+    this.logger.log(`[DECK CONTROLLER] POST/upload`);
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    const userId = this.extractUserId(req);
 
-    return this._service.initialUpload(userId, file, dto);
+    const userId = req.user.id;
+
+    this.logger.log(
+      `[DECK CONTROLLER] POST/upload | Calling intiateUpload service method`,
+    );
+    return this._deckService.initiateUpload(userId, file, dto);
   }
 
-  private extractUserId(req: any): string {
-    const userId = req.user?.id;
+  @Patch(':id')
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateDeckDto,
+    @Req() req,
+  ): Promise<DeckResponseDto> {
+    const userId = req.user.id;
+    this.logger.log(`[DECK CONTROLLER] PATCH/:id | userId=${userId}`);
+    return this._deckService.update(id, userId, dto);
+  }
 
-    if (!userId) {
-      throw new UnauthorizedException('User not authenticated');
-    }
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async delete(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req,
+  ): Promise<void> {
+    const userId = req.user.id;
+    this.logger.log(`[DECK CONTROLLER] DELETE/:id | userId=${userId}`);
+    await this._deckService.delete(id, userId);
+  }
 
-    return userId;
+  @Get(':id/cards')
+  async getCards(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req,
+  ): Promise<CardResponseDto[]> {
+    const userId = req.user.id;
+    this.logger.log(`[DECK CONTROLLER] GET/:id/cards | userId=${userId}`);
+    return this._cardService.findByDeck(id, userId); // ⭐ Get deck's cards
   }
 }
-
-// function temporary() {
-//   @Get()
-//   async getAll(@Req() req): Promise<DeckResponseDto[]> {
-//     const userId = this.extractUserId(req);
-//     return this._service.findAllByUser(userId);
-//   }
-
-//   @Get(':id')
-//   async getById(
-//     @Param('id', ParseUUIDPipe) id: string,
-//     @Req() req,
-//   ): Promise<DeckResponseDto> {
-//     const userId = this.extractUserId(req);
-//     return this._service.findById(id, userId);
-//   }
-
-//   @Post()
-//   @HttpCode(HttpStatus.CREATED)
-//   async create(
-//     @Body() dto: CreateDeckDto,
-//     @Req() req,
-//   ): Promise<DeckResponseDto> {
-//     const userId = this.extractUserId(req);
-//     return this._service.create(userId, dto);
-//   }
-
-//   @Patch(':id')
-//   async update(
-//     @Param('id', ParseUUIDPipe) id: string,
-//     @Body() dto: UpdateDeckDto,
-//     @Req() req,
-//   ): Promise<DeckResponseDto> {
-//     const userId = this.extractUserId(req);
-//     return this._service.update(id, userId, dto);
-//   }
-
-//   @Delete(':id')
-//   @HttpCode(HttpStatus.NO_CONTENT)
-//   async delete(
-//     @Param('id', ParseUUIDPipe) id: string,
-//     @Req() req,
-//   ): Promise<void> {
-//     const userId = this.extractUserId(req);
-//     await this._service.delete(id, userId);
-//   }
-
-//   @Get(':id/cards')
-//   async getCards(@Param('id', ParseUUIDPipe) id: string, @Req() req) {
-//     const userId = this.extractUserId(req);
-//     // TODO: implement card fetching
-//     return [];
-//   }
-// }

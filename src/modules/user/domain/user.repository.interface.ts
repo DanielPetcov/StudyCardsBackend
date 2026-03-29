@@ -1,8 +1,9 @@
-import { PlansEnum } from '@/common/enums';
+import { PlanType } from '@/common/enums';
 
-export abstract class IUserRepository {
-  abstract findById(id: string);
-  abstract updatePlan(id: string, plan: PlansEnum);
-  abstract incrementUploads(id: string);
-  abstract canUpload(id: string): Promise<boolean>;
+export const USER_REPOSITORY = 'USER_REPOSITORY';
+export interface IUserRepository {
+  findById(id: string);
+  updatePlan(id: string, plan: PlanType);
+  incrementUploads(id: string);
+  canUpload(id: string): Promise<boolean>;
 }

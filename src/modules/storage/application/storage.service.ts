@@ -1,5 +1,4 @@
-import { Injectable } from '@nestjs/common';
-
+import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 
 import {
@@ -12,6 +11,8 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 @Injectable()
 export class StorageService {
+  private readonly logger = new Logger(StorageService.name);
+
   private readonly s3 = new S3Client({
     region: 'auto',
     endpoint: process.env.R2_S3_API_ENDPOINT,
@@ -28,30 +29,59 @@ export class StorageService {
   ): Promise<string> {
     const key = `users/${userId}/file/${randomUUID()}-${filename}`;
 
-    await this.s3.send(
-      new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET,
-        Key: key,
-        Body: file,
-      }),
+    this.logger.log(
+      `Upload file started | userId=${userId} fileName=${filename} key=${key} size=${file.length}`,
     );
 
-    return key;
+    try {
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET,
+          Key: key,
+          Body: file,
+        }),
+      );
+
+      this.logger.log(`Upload file completed | userId=${userId} key=${key}`);
+
+      return key;
+    } catch (error) {
+      this.logger.error(
+        `Upload file failed | userId=${userId} fileName=${filename} key=${key}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
+
   async getSingedUrl(
     fileKey: string,
   ): Promise<{ url: string; expirationTime: number }> {
     const expirationTime = 3600;
 
-    const command = new GetObjectCommand({
-      Bucket: process.env.R2_BUCKET,
-      Key: fileKey,
-    });
+    this.logger.log(`Generate signed URL started | fileKey=${fileKey}`);
 
-    const getUrl = await getSignedUrl(this.s3, command, {
-      expiresIn: expirationTime,
-    });
+    try {
+      const command = new GetObjectCommand({
+        Bucket: process.env.R2_BUCKET,
+        Key: fileKey,
+      });
 
-    return { url: getUrl, expirationTime };
+      const url = await getSignedUrl(this.s3, command, {
+        expiresIn: expirationTime,
+      });
+
+      this.logger.log(
+        `Generate signed URL completed | fileKey=${fileKey} expiresIn=${expirationTime}`,
+      );
+
+      return { url, expirationTime };
+    } catch (error) {
+      this.logger.error(
+        `Generate signed URL failed | fileKey=${fileKey}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
 }

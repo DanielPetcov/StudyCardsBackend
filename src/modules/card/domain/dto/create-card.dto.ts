@@ -1,8 +1,6 @@
 import { CardDifficulty } from '@/common/enums';
 
-export class CardResponseDto {
-  id: string;
-  deckId: string;
+export class CreateCardDto {
   question: string;
   explanation: string;
   difficulty: CardDifficulty;

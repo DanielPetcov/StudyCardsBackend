@@ -3,7 +3,7 @@ import { UserService } from './application/user.service';
 
 import { DatabaseModule } from '@/modules/database/database.module';
 
-import { IUserRepository } from './domain/user.repository.interface';
+import { USER_REPOSITORY } from './domain/user.repository.interface';
 import { DrizzleUserRepository } from './infrastructure/drizzle-user.repository';
 import { UserController } from './presentation/user.controller';
 
@@ -12,7 +12,7 @@ import { UserController } from './presentation/user.controller';
   providers: [
     UserService,
     {
-      provide: IUserRepository,
+      provide: USER_REPOSITORY,
       useClass: DrizzleUserRepository,
     },
   ],

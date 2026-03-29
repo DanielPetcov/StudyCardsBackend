@@ -1,4 +1,4 @@
-import { PlansEnum } from '@/common/enums';
+import { PlanType } from '@/common/enums';
 
 import { DatabaseService } from '@/modules/database/database.service';
 import { IUserRepository } from '@/modules/user/domain/user.repository.interface';
@@ -25,7 +25,7 @@ export class DrizzleUserRepository implements IUserRepository {
       throw error;
     }
   }
-  updatePlan(id: string, plan: PlansEnum) {
+  updatePlan(id: string, plan: PlanType) {
     throw new Error('Method not implemented.');
   }
   incrementUploads(id: string) {

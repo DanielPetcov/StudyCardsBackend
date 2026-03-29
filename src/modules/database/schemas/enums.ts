@@ -6,7 +6,7 @@ export const plansEnum = pgEnum('plans', ['free', 'pro']);
 
 export const cardDifficultiesEnum = pgEnum('cardDifficulties', [
   'easy',
-  'mediu',
+  'medium',
   'hard',
 ]);
 
@@ -19,7 +19,27 @@ export const deckStatusesEnum = pgEnum('deckStatuses', [
 export const deckIconEnum = pgEnum('deckIcons', [
   'book-open',
   'brain',
+  'code',
+  'flask',
+  'dna',
+  'atom',
+  'calculator',
+  'globe',
+  'landmark',
+  'scale',
+  'briefcase',
+  'palette',
+  'music',
+  'language',
+  'heart',
+  'cpu',
+  'database',
+  'chart',
+  'rocket',
+  'leaf',
+  'microscope',
+  'book',
+  'theater',
+  'gamepad',
   'clock',
-  'star',
-  'archive',
 ]);

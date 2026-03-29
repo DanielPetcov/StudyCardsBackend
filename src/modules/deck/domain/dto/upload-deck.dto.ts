@@ -1,9 +1,9 @@
-import { IsOptional, IsEnum } from 'class-validator';
+import { IsOptional, IsIn } from 'class-validator';
 
-import { LanguagesEnum } from '@/common/enums';
+import { type LanguageType, languages } from '@/common/enums';
 
 export class UploadDeckDto {
-  @IsEnum(LanguagesEnum)
+  @IsIn(languages)
   @IsOptional()
-  language?: LanguagesEnum; // For AI translation
+  language?: LanguageType; // For AI translation
 }

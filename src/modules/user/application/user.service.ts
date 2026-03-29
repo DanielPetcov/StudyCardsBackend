@@ -1,11 +1,17 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 
-import { PlansEnum } from '@/common/enums';
-import { IUserRepository } from '@/modules/user/domain/user.repository.interface';
+import { PlanType } from '@/common/enums';
+import {
+  USER_REPOSITORY,
+  type IUserRepository,
+} from '@/modules/user/domain/user.repository.interface';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly _repo: IUserRepository) {}
+  constructor(
+    @Inject(USER_REPOSITORY)
+    private readonly _repo: IUserRepository,
+  ) {}
 
   async findById(id: string) {
     const user = await this._repo.findById(id);
@@ -16,7 +22,7 @@ export class UserService {
 
     return user;
   }
-  async updatePlan(id: string, plan: PlansEnum) {}
+  async updatePlan(id: string, plan: PlanType) {}
   async incrementUploads(id: string) {}
   async canUpload(id: string): Promise<boolean> {
     return true;

@@ -1,8 +1,8 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { IsBoolean, IsOptional, IsEnum } from 'class-validator';
+import { IsBoolean, IsOptional, IsIn } from 'class-validator';
 
 import { CreateDeckDto } from './deck-create.dto';
-import { DeckStatusesEnum } from '@/common/enums';
+import { type DeckStatuseType, deckStatuses } from '@/common/enums';
 
 export class UpdateDeckDto extends PartialType(CreateDeckDto) {
   @IsBoolean()
@@ -13,7 +13,7 @@ export class UpdateDeckDto extends PartialType(CreateDeckDto) {
   @IsOptional()
   archived?: boolean;
 
-  @IsEnum(DeckStatusesEnum)
+  @IsIn(deckStatuses)
   @IsOptional()
-  status?: DeckStatusesEnum;
+  status?: DeckStatuseType;
 }

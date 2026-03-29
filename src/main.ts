@@ -2,8 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  console.log(process.env.FRONTEND_URL);
-
   const app = await NestFactory.create(AppModule, {
     bodyParser: false,
   });
