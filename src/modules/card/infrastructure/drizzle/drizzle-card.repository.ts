@@ -2,52 +2,71 @@ import { Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { ICardRepository } from '../../domain/card.repository.interface';
 import { DatabaseService } from '@/modules/database/database.service';
-import { card } from '@/modules/database/schemas';
-import { CardDifficulty } from '@/common/enums';
+import { card, cardOption } from '@/modules/database/schemas';
+
+import { CreateCardDto } from '../../domain/dto/create-card.dto';
 
 @Injectable()
 export class DrizzleCardRepository implements ICardRepository {
   constructor(private readonly _db: DatabaseService) {}
 
-  async bulkCreate(
-    deckId: string,
-    cards: Array<{
-      question: string;
-      explanation: string;
-      difficulty: CardDifficulty;
-      order: number;
-    }>,
-  ): Promise<void> {
-    // Prepare bulk insert data
+  async bulkCreate(deckId: string, cards: CreateCardDto[]): Promise<void> {
+    // 1. Prepare cards for insertion
     const cardsToInsert = cards.map((c) => ({
       deckId,
       question: c.question,
-      explanation: c.explanation,
       difficulty: c.difficulty,
       order: c.order,
     }));
 
-    // Bulk insert all cards at once
-    await this._db.db.insert(card).values(cardsToInsert);
+    // 2. Insert all cards and get their IDs back
+    const insertedCards = await this._db.db
+      .insert(card)
+      .values(cardsToInsert)
+      .returning();
+
+    // 3. Flatten all card options with their corresponding cardId
+    const cardOptionsToInsert = insertedCards.flatMap((insertedCard, index) => {
+      const cardData = cards[index];
+      return cardData.options.map((option) => ({
+        cardId: insertedCard.id,
+        text: option.text,
+        isCorrect: option.isCorrect,
+        explanation: option.explanation || null,
+        order: option.order,
+      }));
+    });
+
+    // 4. Bulk insert all card options
+    if (cardOptionsToInsert.length > 0) {
+      await this._db.db.insert(cardOption).values(cardOptionsToInsert);
+    }
   }
 
   async findByDeck(deckId: string) {
-    const cards = await this._db.db
-      .select()
-      .from(card)
-      .where(eq(card.deckId, deckId))
-      .orderBy(card.order); // ⭐ Return in logical order
-
-    return cards;
+    const cardsWithOptions = await this._db.db.query.card.findMany({
+      where: eq(card.deckId, deckId),
+      orderBy: (cards, { asc }) => [asc(cards.order)],
+      with: {
+        options: {
+          orderBy: (options, { asc }) => [asc(options.order)],
+        },
+      },
+    });
+    return cardsWithOptions;
   }
 
   async findById(id: string) {
-    const [result] = await this._db.db
-      .select()
-      .from(card)
-      .where(eq(card.id, id));
+    const cardWithOptions = await this._db.db.query.card.findFirst({
+      where: eq(card.id, id),
+      with: {
+        options: {
+          orderBy: (options, { asc }) => [asc(options.order)],
+        },
+      },
+    });
 
-    return result || null;
+    return cardWithOptions || null;
   }
 
   async delete(id: string): Promise<void> {

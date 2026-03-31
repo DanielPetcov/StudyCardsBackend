@@ -44,7 +44,7 @@ export class CardService {
     }
 
     const validCards = cards.filter(
-      (card) => card.question?.trim() && card.explanation?.trim(),
+      (card) => card.question?.trim() && card.options.length === 4,
     );
 
     if (validCards.length === 0) {
@@ -140,9 +140,9 @@ export class CardService {
       id: card.id,
       deckId: card.deckId,
       question: card.question,
-      explanation: card.explanation,
       difficulty: card.difficulty,
       order: card.order,
+      options: card.options,
     };
   }
 }

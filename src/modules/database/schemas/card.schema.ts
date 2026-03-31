@@ -5,14 +5,13 @@ import { deck } from './deck.schema';
 import { cardDifficultiesEnum } from './enums';
 
 export const card = pgTable('card', {
-  id: uuid().defaultRandom().primaryKey(),
+  id: uuid('id').defaultRandom().primaryKey(),
 
-  deckId: uuid()
+  deckId: uuid('deck_id')
     .references(() => deck.id, { onDelete: 'cascade' })
     .notNull(),
-  question: text().notNull(),
-  explanation: text().notNull(),
+  question: text('question').notNull(),
 
-  difficulty: cardDifficultiesEnum().notNull(),
-  order: integer().notNull().default(0),
+  difficulty: cardDifficultiesEnum('difficulty').notNull(),
+  order: integer('order').notNull().default(0),
 });

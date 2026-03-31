@@ -22,8 +22,11 @@ export const user = pgTable('user', {
     .notNull(),
 
   // custom added
-  language: languagesEnum().notNull().default('ro'),
-  uploadsUsed: integer().notNull().default(0),
+  language: languagesEnum('language').notNull().default('ro'),
+  uploadsUsed: integer('uploads_used').notNull().default(0),
 
-  plan: plansEnum().notNull().default('free'),
+  plan: plansEnum('plan').notNull().default('free'),
 });
+
+export type UserEntity = typeof user.$inferSelect;
+export type UserInsert = typeof user.$inferInsert;

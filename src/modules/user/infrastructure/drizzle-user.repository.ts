@@ -10,28 +10,22 @@ import { Injectable } from '@nestjs/common';
 export class DrizzleUserRepository implements IUserRepository {
   constructor(private readonly _db: DatabaseService) {}
 
-  async findById(id: string) {
-    try {
-      const rows = await this._db.db
-        .select()
-        .from(user)
-        .where(eq(user.id, id))
-        .limit(1);
+  async findById(userId: string) {
+    const [row] = await this._db.db
+      .select()
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
 
-      return rows[0] ?? null;
-    } catch (error) {
-      console.error('findById error:', error);
-      console.error('cause:', error instanceof Error ? error.cause : undefined);
-      throw error;
-    }
+    return row ?? null;
   }
-  updatePlan(id: string, plan: PlanType) {
+  updatePlan(userId: string, plan: PlanType) {
     throw new Error('Method not implemented.');
   }
-  incrementUploads(id: string) {
+  incrementUploads(userId: string) {
     throw new Error('Method not implemented.');
   }
-  canUpload(id: string): Promise<boolean> {
+  canUpload(userId: string): Promise<boolean> {
     throw new Error('Method not implemented.');
   }
 }

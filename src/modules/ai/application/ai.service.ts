@@ -144,21 +144,30 @@ export class AiService {
   }
 
   private getSystemPrompt(): string {
-    return `You are an expert educational content analyzer and flashcard creator. Your task is to:
+    return `You are an expert educational content analyzer and multiple-choice question creator. Your task is to:
 
 1. Analyze educational PDF content thoroughly
-2. Create high-quality study flashcards with clear questions and detailed explanations
+2. Create high-quality multiple-choice study cards with clear questions and exactly 4 answer options
 3. Organize cards in logical learning progression
 4. Assign appropriate difficulty levels based on concept complexity
 5. Choose the most relevant icon representing the main topic
 6. Generate between 15-50 cards depending on content depth
 
-Guidelines:
+Guidelines for Questions:
 - Questions should be clear, specific, and test understanding
-- Explanations should be comprehensive but concise (2-4 sentences)
-- Easy: Basic definitions, simple facts
-- Medium: Application of concepts, relationships between ideas
-- Hard: Complex analysis, synthesis, critical thinking
+- Each card must have exactly 4 answer options (A, B, C, D)
+- Only ONE option should be correct
+- Incorrect options should be plausible but clearly wrong (common misconceptions, related concepts)
+- Avoid "all of the above" or "none of the above" options
+- The correct answer should include a detailed explanation (2-4 sentences)
+- Incorrect answers can optionally include brief explanations of why they're wrong
+
+Difficulty Levels:
+- Easy: Basic definitions, simple facts, straightforward recall
+- Medium: Application of concepts, relationships between ideas, understanding
+- Hard: Complex analysis, synthesis, critical thinking, nuanced distinctions
+
+Card Ordering:
 - Order cards logically: foundational concepts first, advanced topics later
 - If content is limited, generate at least 1 card, up to 15 minimum when possible
 
@@ -198,7 +207,7 @@ Always respond with valid JSON only, no markdown formatting.`;
   ): string {
     const needsTranslation = targetLanguage !== pdfLanguage;
     const translationNote = needsTranslation
-      ? `IMPORTANT: The PDF is in ${pdfLanguage}, but you must translate ALL questions and explanations to ${targetLanguage}.`
+      ? `IMPORTANT: The PDF is in ${pdfLanguage}, but you must translate ALL questions, answer options, and explanations to ${targetLanguage}.`
       : `Generate cards in ${targetLanguage}, the same language as the PDF content.`;
 
     // Truncate PDF text if too long (keep first 80% of char limit for model)
@@ -218,7 +227,7 @@ Always respond with valid JSON only, no markdown formatting.`;
 PDF Content:
 ${truncatedText}
 
-Analyze this educational content and create a comprehensive deck of study flashcards.
+Analyze this educational content and create a comprehensive deck of multiple-choice study cards.
 
 Requirements:
 1. Generate 15-50 cards (more cards for longer/denser content)
@@ -231,6 +240,14 @@ Requirements:
    - medium: Understanding, application, connections
    - hard: Analysis, synthesis, complex reasoning
 
+Multiple-Choice Format:
+- Each card must have exactly 4 answer options
+- Only ONE option is correct (isCorrect: true)
+- The correct option MUST include a detailed explanation (2-4 sentences)
+- Incorrect options should be plausible distractors (common mistakes, related concepts)
+- Order options logically (don't always put correct answer first)
+- Vary the position of correct answers across cards
+
 Respond with JSON in this exact format:
 {
   "title": "Deck title here",
@@ -238,32 +255,69 @@ Respond with JSON in this exact format:
   "icon": "icon-name",
   "cards": [
     {
-      "question": "Clear, specific question",
-      "explanation": "Detailed explanation (2-4 sentences)",
-      "difficulty": "easy|medium|hard",
-      "order": 0
+      "question": "What is a closure in JavaScript?",
+      "difficulty": "medium",
+      "order": 0,
+      "options": [
+        {
+          "text": "A function that has access to variables in its outer scope",
+          "isCorrect": true,
+          "explanation": "A closure is formed when a function is defined inside another function, giving it access to the outer function's variables even after the outer function has returned. This is a fundamental concept in JavaScript's lexical scoping.",
+          "order": 0
+        },
+        {
+          "text": "A function that closes the browser window",
+          "isCorrect": false,
+          "explanation": null,
+          "order": 1
+        },
+        {
+          "text": "A method to close database connections",
+          "isCorrect": false,
+          "explanation": null,
+          "order": 2
+        },
+        {
+          "text": "A built-in JavaScript object for memory management",
+          "isCorrect": false,
+          "explanation": null,
+          "order": 3
+        }
+      ]
     }
   ]
 }
 
 Remember:
 - Questions in ${targetLanguage}
+- All answer options in ${targetLanguage}
 - Explanations in ${targetLanguage}
-- Logical order progression (order: 0, 1, 2, ...)
+- Exactly 4 options per card
+- Only ONE correct answer per card
+- Correct answer must have explanation
+- Logical order progression (card order: 0, 1, 2, ...)
+- Option order: 0, 1, 2, 3
 - Valid JSON only, no markdown`;
   }
 
   private validateAndNormalizeResponse(aiResponse: any): AIDeckAnalysis {
+    // 1. Validate top-level structure
     if (
       !aiResponse.title ||
       !aiResponse.description ||
       !aiResponse.icon ||
       !Array.isArray(aiResponse.cards)
     ) {
-      this.logger.warn('AI response validation failed | invalid structure');
+      this.logger.warn('AI response validation failed | invalid structure', {
+        hasTitle: !!aiResponse.title,
+        hasDescription: !!aiResponse.description,
+        hasIcon: !!aiResponse.icon,
+        hasCards: Array.isArray(aiResponse.cards),
+      });
       throw new Error('Invalid AI response structure');
     }
 
+    // 2. Validate icon
     const validIcons = [
       'book-open',
       'brain',
@@ -298,19 +352,64 @@ Remember:
       aiResponse.icon = 'book-open';
     }
 
+    // 3. Validate and normalize cards
     const cards: CreateCardDto[] = aiResponse.cards
-      .filter((card: any) => card.question && card.explanation)
-      .map((card: any, index: number) => ({
+      .filter((card: any) => {
+        if (!card.question || !Array.isArray(card.options)) {
+          this.logger.debug('Card filtered out | missing question or options', {
+            hasQuestion: !!card.question,
+            hasOptions: Array.isArray(card.options),
+          });
+          return false;
+        }
+
+        if (card.options.length !== 4) {
+          this.logger.debug(
+            `Card filtered out | expected 4 options, got ${card.options.length}`,
+          );
+          return false;
+        }
+
+        const correctCount = card.options.filter(
+          (opt: any) => opt.isCorrect,
+        ).length;
+        if (correctCount !== 1) {
+          this.logger.debug(
+            `Card filtered out | expected 1 correct option, got ${correctCount}`,
+          );
+          return false;
+        }
+
+        const correctOption = card.options.find((opt: any) => opt.isCorrect);
+        if (!correctOption?.explanation) {
+          this.logger.debug(
+            'Card filtered out | correct option missing explanation',
+          );
+          return false;
+        }
+
+        return true;
+      })
+      .map((card: any, cardIndex: number) => ({
         question: card.question.trim(),
-        explanation: card.explanation.trim(),
         difficulty: this.validateDifficulty(card.difficulty),
-        order: card.order ?? index,
+        order: card.order ?? cardIndex,
+        options: card.options.map((option: any, optionIndex: number) => ({
+          text: option.text?.trim() || '',
+          isCorrect: option.isCorrect === true,
+          explanation: option.explanation?.trim() || null,
+          order: option.order ?? optionIndex,
+        })),
       }))
       .slice(0, 50);
 
     if (cards.length === 0) {
-      this.logger.warn(
+      this.logger.error(
         'AI response validation failed | no valid cards generated',
+        {
+          totalCardsInResponse: aiResponse.cards?.length || 0,
+          sampleCard: aiResponse.cards?.[0] || null,
+        },
       );
       throw new Error('AI generated no valid cards');
     }
@@ -318,6 +417,10 @@ Remember:
     if (cards.length < 15) {
       this.logger.warn(`Low card count generated | cards=${cards.length}`);
     }
+
+    this.logger.log(
+      `Deck analysis validated | cards=${cards.length} icon=${aiResponse.icon}`,
+    );
 
     return {
       title: aiResponse.title.trim().substring(0, 255),

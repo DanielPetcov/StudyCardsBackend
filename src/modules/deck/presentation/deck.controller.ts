@@ -34,7 +34,7 @@ export class DeckController {
   constructor(
     private readonly _deckService: DeckService,
     @Inject(forwardRef(() => CardService))
-    private readonly _cardService: CardService, // ⭐ Inject CardService
+    private readonly _cardService: CardService,
   ) {}
 
   private readonly logger = new Logger(DeckController.name);
