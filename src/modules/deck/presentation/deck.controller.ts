@@ -28,6 +28,7 @@ import { UploadDeckDto } from '../domain/dto/upload-deck.dto';
 import { UpdateDeckDto } from '../domain/dto/update-deck.dto';
 
 import { CardResponseDto } from '@/modules/card/domain/dto/card-response.dto';
+import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
 
 @Controller('decks')
 export class DeckController {

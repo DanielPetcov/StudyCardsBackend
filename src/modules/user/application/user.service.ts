@@ -33,6 +33,7 @@ export class UserService {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       }
 
+      this.logger.log(`Returning user`);
       return this.toResponseDto(user);
     } catch (error) {
       this.logger.error(
