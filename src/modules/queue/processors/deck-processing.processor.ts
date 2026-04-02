@@ -26,7 +26,7 @@ export class DeckProcessingProcessor {
 
   @Process('process-deck')
   async processDeck(job: Job<DeckProcessingJobData>): Promise<void> {
-    const { deckId, userId, fileId, fileKey, language } = job.data;
+    const { deckId, userId, userPlan, fileId, fileKey, language } = job.data;
 
     this.logger.log(
       `Process deck started | jobId=${job.id} deckId=${deckId} userId=${userId}`,
@@ -48,7 +48,7 @@ export class DeckProcessingProcessor {
       // 2. AI analysis
       this.logger.log(`AI analysis started | deckId=${deckId}`);
 
-      const aiAnalysis = await this._ai.analyzeDeck(buffer, language);
+      const aiAnalysis = await this._ai.analyzeDeck(userPlan, buffer, language);
 
       this.logger.log(
         `AI analysis completed | deckId=${deckId} cards=${aiAnalysis.cards.length} icon=${aiAnalysis.icon}`,

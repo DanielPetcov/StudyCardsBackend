@@ -1,11 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
-import { LanguageType } from '@/common/enums';
+import { LanguageType, PlanType } from '@/common/enums';
 
 export interface DeckProcessingJobData {
   deckId: string;
   userId: string;
+  userPlan: PlanType;
   fileId: string;
   fileKey: string;
   language: LanguageType;

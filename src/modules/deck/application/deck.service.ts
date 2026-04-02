@@ -20,6 +20,7 @@ import { DeckStatuseType } from '@/common/enums';
 import { UploadDeckDto } from '../domain/dto/upload-deck.dto';
 import { QueueService } from '@/modules/queue/application/queue.service';
 import { FileService } from '@/modules/file/application/file.service';
+import { UserService } from '@/modules/user/application/user.service';
 
 @Injectable()
 export class DeckService {
@@ -31,6 +32,7 @@ export class DeckService {
     private readonly _file: FileService,
     @Inject(forwardRef(() => QueueService))
     private readonly _queue: QueueService,
+    private readonly _user: UserService,
   ) {}
 
   async initiateUpload(
@@ -43,6 +45,13 @@ export class DeckService {
     );
 
     try {
+      const canUpload = await this._user.canUpload(userId);
+      if (!canUpload) {
+        throw new HttpException('User can not upload', HttpStatus.BAD_GATEWAY);
+      }
+
+      const { plan } = await this._user.me(userId);
+
       this.logger.log(
         `Uploading file | userId=${userId} fileName=${file.originalname}`,
       );
@@ -75,6 +84,7 @@ export class DeckService {
       await this._queue.addDeckProcessingJob({
         deckId: deck.id,
         userId,
+        userPlan: plan,
         fileId,
         fileKey,
         language: dto.language || 'en',

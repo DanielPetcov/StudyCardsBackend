@@ -2,8 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OpenRouter } from '@openrouter/sdk';
 import { PDFParse } from 'pdf-parse';
 
-import { DeckIconName, LanguageType, CardDifficulty } from '@/common/enums';
+import {
+  DeckIconName,
+  LanguageType,
+  CardDifficulty,
+  PlanType,
+} from '@/common/enums';
 import { CreateCardDto } from '@/modules/card/domain/dto/create-card.dto';
+import { getMaxCardsPerDeck } from '@/helpers';
 
 interface AIDeckAnalysis {
   title: string;
@@ -23,6 +29,7 @@ export class AiService {
   private readonly model = 'google/gemini-2.5-flash-lite';
 
   async analyzeDeck(
+    userPlan: PlanType,
     buffer: Buffer,
     language: LanguageType,
   ): Promise<AIDeckAnalysis> {
@@ -48,7 +55,14 @@ export class AiService {
         `PDF language detected | detectedLanguage=${pdfLanguage} targetLanguage=${language}`,
       );
 
-      const prompt = this.buildAnalysisPrompt(pdfText, language, pdfLanguage);
+      const maximumCards = getMaxCardsPerDeck(userPlan);
+
+      const prompt = this.buildAnalysisPrompt(
+        pdfText,
+        language,
+        pdfLanguage,
+        maximumCards,
+      );
 
       this.logger.log(
         `Sending analysis request to AI | model=${this.model} promptLength=${prompt.length}`,
@@ -77,7 +91,10 @@ export class AiService {
 
       const aiResponse = JSON.parse(response.choices[0].message.content);
 
-      const normalized = this.validateAndNormalizeResponse(aiResponse);
+      const normalized = this.validateAndNormalizeResponse(
+        aiResponse,
+        maximumCards,
+      );
 
       this.logger.log(
         `Deck analysis completed | title="${normalized.title}" icon=${normalized.icon} cards=${normalized.cards.length}`,
@@ -204,6 +221,7 @@ Always respond with valid JSON only, no markdown formatting.`;
     pdfText: string,
     targetLanguage: LanguageType,
     pdfLanguage: string,
+    maximumCards: number,
   ): string {
     const needsTranslation = targetLanguage !== pdfLanguage;
     const translationNote = needsTranslation
@@ -230,7 +248,7 @@ ${truncatedText}
 Analyze this educational content and create a comprehensive deck of multiple-choice study cards.
 
 Requirements:
-1. Generate 15-50 cards (more cards for longer/denser content)
+1. Generate 15-${maximumCards} cards (more cards for longer/denser content)
 2. Create a clear, descriptive title (max 100 characters)
 3. Write a brief description of what the deck covers (2-3 sentences)
 4. Choose the most appropriate icon from the available list
@@ -300,7 +318,10 @@ Remember:
 - Valid JSON only, no markdown`;
   }
 
-  private validateAndNormalizeResponse(aiResponse: any): AIDeckAnalysis {
+  private validateAndNormalizeResponse(
+    aiResponse: any,
+    maximumCards: number,
+  ): AIDeckAnalysis {
     // 1. Validate top-level structure
     if (
       !aiResponse.title ||
@@ -416,6 +437,13 @@ Remember:
 
     if (cards.length < 15) {
       this.logger.warn(`Low card count generated | cards=${cards.length}`);
+    }
+
+    if (cards.length > maximumCards) {
+      this.logger.error(
+        `Card count over the maximum allowed | maximumCards=${maximumCards}`,
+      );
+      throw new Error('Card count over the maximum allowed');
     }
 
     this.logger.log(

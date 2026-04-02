@@ -16,6 +16,7 @@ import { UserController } from './presentation/user.controller';
       useClass: DrizzleUserRepository,
     },
   ],
+  exports: [UserService],
   controllers: [UserController],
 })
 export class UserModule {}

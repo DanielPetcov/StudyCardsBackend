@@ -7,11 +7,13 @@ import { DrizzleDeckRepository } from './infrastructure/drizzle/drizzle-deck.rep
 import { QueueModule } from '../queue/queue.module';
 import { FileModule } from '../file/file.module';
 import { CardModule } from '../card/card.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
     DatabaseModule,
     FileModule,
+    UserModule,
     forwardRef(() => QueueModule),
     forwardRef(() => CardModule),
   ],
