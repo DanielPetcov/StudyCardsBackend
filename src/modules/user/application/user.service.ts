@@ -84,8 +84,46 @@ export class UserService {
     }
   }
 
-  async updatePlan(id: string, plan: PlanType) {}
-  async incrementUploads(id: string) {}
+  async updatePlan(userId: string, plan: PlanType) {
+    try {
+      await this.checkUserExists(userId);
+
+      this.logger.log(
+        `Updating the user plan | userId=${userId} | plan=${plan}`,
+      );
+      const user = await this._repo.updatePlan(userId, plan);
+      if (!user) {
+        throw new Error('User returned null');
+      }
+
+      return user;
+    } catch (error) {
+      this.logger.error(`Failed to update user plan | userId=${userId}`);
+      throw new HttpException(
+        'Failed to update user plan',
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
+  }
+  async incrementUploads(userId: string) {
+    try {
+      await this.checkUserExists(userId);
+
+      this.logger.log(`Incrementing user uploads | userId=${userId}`);
+      const user = await this._repo.incrementUploads(userId);
+      if (!user) {
+        throw new Error('User returned null');
+      }
+
+      return user;
+    } catch (error) {
+      this.logger.error(`Failed to increment user uploads | userId=${userId}`);
+      throw new HttpException(
+        'Failed to increment user uploads',
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
+  }
 
   private toResponseDto(user: UserEntity): UserResponseDto {
     return {
@@ -95,5 +133,17 @@ export class UserService {
       plan: user.plan,
       uploadsUsed: user.uploadsUsed,
     };
+  }
+
+  private async checkUserExists(userId: string): Promise<boolean> {
+    this.logger.log(`Find user started | userId=${userId}`);
+    const user = await this._repo.findById(userId);
+
+    if (!user) {
+      this.logger.log(`User not found | userId=${userId}`);
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    return true;
   }
 }

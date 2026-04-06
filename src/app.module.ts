@@ -15,6 +15,7 @@ import { QueueModule } from './modules/queue/queue.module';
 import { BullModule } from '@nestjs/bull';
 
 import * as dotenv from 'dotenv';
+import { AppController } from './app.controller';
 dotenv.config();
 
 @Module({
@@ -39,5 +40,6 @@ dotenv.config();
     AuthModule.forRoot({ auth, isGlobal: true }),
     ConfigModule.forRoot({ isGlobal: true }),
   ],
+  controllers: [AppController],
 })
 export class AppModule {}

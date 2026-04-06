@@ -2,18 +2,41 @@ import { PlanType } from '@/common/enums';
 
 import { DatabaseService } from '@/modules/database/database.service';
 import { IUserRepository } from '@/modules/user/domain/user.repository.interface';
-import { deck, user } from '@/modules/database/schemas';
+import { deck, user, UserEntity } from '@/modules/database/schemas';
 import { and, eq, or, sql } from 'drizzle-orm';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class DrizzleUserRepository implements IUserRepository {
   constructor(private readonly _db: DatabaseService) {}
-  updatePlan(userId: string, plan: PlanType): Promise<void> {
-    throw new Error('Method not implemented.');
+
+  async updatePlan(userId: string, plan: PlanType): Promise<UserEntity | null> {
+    const [row] = await this._db.db
+      .update(user)
+      .set({
+        plan: plan,
+      })
+      .where(eq(user.id, userId))
+      .returning();
+
+    return row ?? null;
   }
-  incrementUploads(userId: string): Promise<void> {
-    throw new Error('Method not implemented.');
+
+  async incrementUploads(userId: string): Promise<UserEntity | null> {
+    const [row] = await this._db.db
+      .select({ uploadsUsed: user.uploadsUsed })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
+    const [updatedUser] = await this._db.db
+      .update(user)
+      .set({
+        uploadsUsed: row.uploadsUsed + 1,
+      })
+      .where(eq(user.id, userId))
+      .returning();
+
+    return updatedUser ?? null;
   }
 
   async findById(userId: string) {
