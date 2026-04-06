@@ -26,6 +26,8 @@ export const user = pgTable('user', {
   uploadsUsed: integer('uploads_used').notNull().default(0),
 
   plan: plansEnum('plan').notNull().default('free'),
+
+  polarCustomerId: text('polar_customer_id').unique(),
 });
 
 export type UserEntity = typeof user.$inferSelect;

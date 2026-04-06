@@ -7,6 +7,7 @@ export interface IUserRepository {
   getUserQuotaInfo(userId: string): Promise<UserQuotaData | null>;
   updatePlan(userId: string, plan: PlanType): Promise<UserEntity | null>;
   incrementUploads(userId: string): Promise<UserEntity | null>;
+  updateCustomerId(userId: string, polarCustomerId: string): Promise<null>;
 }
 
 export interface UserQuotaData {

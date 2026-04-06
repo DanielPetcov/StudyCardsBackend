@@ -43,3 +43,14 @@ export const deckIconEnum = pgEnum('deckIcons', [
   'gamepad',
   'clock',
 ]);
+
+export const subscriptionStatusEnum = pgEnum('subscription_status', [
+  'incomplete',
+  'incomplete_expired',
+  'trialing',
+  'active',
+  'past_due',
+  'canceled',
+  'revoked',
+  'unpaid',
+]);

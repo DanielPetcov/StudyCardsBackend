@@ -16,6 +16,7 @@ import { BullModule } from '@nestjs/bull';
 
 import * as dotenv from 'dotenv';
 import { AppController } from './app.controller';
+import { SubscriptionModule } from './modules/subscription/subscription.module';
 dotenv.config();
 
 @Module({
@@ -28,6 +29,7 @@ dotenv.config();
     UserModule,
     FileModule,
     QueueModule,
+    SubscriptionModule,
 
     BullModule.forRoot({
       redis: {

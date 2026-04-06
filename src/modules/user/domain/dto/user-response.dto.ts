@@ -5,5 +5,6 @@ export class UserResponseDto {
   email: string;
   language: LanguageType;
   uploadsUsed: number;
+  activeDecks: number;
   plan: PlanType;
 }

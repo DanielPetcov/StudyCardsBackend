@@ -69,7 +69,6 @@ export class UserService {
       }
 
       return true;
-      return true;
     } catch (error) {
       if (error instanceof HttpException) throw error;
 
@@ -125,13 +124,32 @@ export class UserService {
     }
   }
 
-  private toResponseDto(user: UserEntity): UserResponseDto {
+  async updatePolarCustomerId(userId: string, polarCustomerId: string) {
+    try {
+      this.logger.log(
+        `Trying to update user polarCustomerId | userId=${userId} | polarCustomerId=${polarCustomerId}`,
+      );
+      await this._repo.updateCustomerId(userId, polarCustomerId);
+    } catch (error) {
+      this.logger.error(
+        `Failed to update user polarCustomerId | userId=${userId} | polarCustomerId=${polarCustomerId}`,
+      );
+      throw new HttpException(
+        'Failed to update user polarCustomerId',
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
+  }
+
+  private async toResponseDto(user: UserEntity): Promise<UserResponseDto> {
+    const userInfo = await this._repo.getUserQuotaInfo(user.id);
     return {
       name: user.name,
       email: user.email,
       language: user.language,
       plan: user.plan,
       uploadsUsed: user.uploadsUsed,
+      activeDecks: userInfo?.activeDecks ?? 0,
     };
   }
 

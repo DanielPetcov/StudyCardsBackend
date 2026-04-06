@@ -54,7 +54,7 @@ export class DrizzleUserRepository implements IUserRepository {
       .select({
         uploadsUsed: user.uploadsUsed,
         plan: user.plan,
-        activeDecks: sql<number>`count(${deck.id})`.as('activeDecks'),
+        activeDecks: sql<number>`count(${deck.id})::int`.as('activeDecks'),
       })
       .from(user)
       .leftJoin(
@@ -69,5 +69,19 @@ export class DrizzleUserRepository implements IUserRepository {
       .limit(1);
 
     return result ?? null;
+  }
+
+  async updateCustomerId(
+    userId: string,
+    polarCustomerId: string,
+  ): Promise<null> {
+    await this._db.db
+      .update(user)
+      .set({
+        polarCustomerId: polarCustomerId,
+      })
+      .where(eq(user.id, userId));
+
+    return null;
   }
 }

@@ -65,6 +65,9 @@ export class DeckService {
 
       this.logger.log(`File uploaded | fileId=${fileId} fileKey=${fileKey}`);
 
+      this.logger.log(`Incrementing filesUploaded for user | userId=${userId}`);
+      await this._user.incrementUploads(userId);
+
       const deck = await this._repo.create({
         title: file.originalname.replace(/\.pdf$/i, ''),
         description: 'Processing...',

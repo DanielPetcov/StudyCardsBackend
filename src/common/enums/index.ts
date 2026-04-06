@@ -3,3 +3,4 @@ export * from './plans.enum';
 export * from './deck-statuses.enum';
 export * from './deck-icon.enum';
 export * from './card-difficulties.enum';
+export * from './subscription-status.enum';

@@ -3,20 +3,20 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 
 import { db } from '@/modules/database/db';
 
-import {
-  polar,
-  checkout,
-  portal,
-  usage,
-  webhooks,
-} from '@polar-sh/better-auth';
+import { polar, checkout, webhooks } from '@polar-sh/better-auth';
 import { Polar } from '@polar-sh/sdk';
 
 import { getAppContext } from './app-context';
 import { UserService } from './modules/user/application/user.service';
+import { SubscriptionService } from './modules/subscription/application/subscription.service';
+import { mapPolarSubscriptionPayloadToDto } from './helpers';
 
 function getUserService() {
   return getAppContext().get(UserService);
+}
+
+function getSubscriptionService() {
+  return getAppContext().get(SubscriptionService);
 }
 
 const polarClient = new Polar({
@@ -58,64 +58,89 @@ export const auth = betterAuth({
       createCustomerOnSignUp: true,
       use: [
         checkout({
-          successUrl: 'http://localhost:3000/dashboard',
+          successUrl: 'http://localhost:3000/dashboard?payment=success',
           authenticatedUsersOnly: true,
         }),
         webhooks({
           secret: process.env.POLAR_WEBHOOK_SECRET!,
+
           onPayload: async (payload) => {
             console.log('POLAR WEBHOOK RECEIVED');
             console.log(JSON.stringify(payload, null, 2));
           },
+
+          onCustomerCreated: async (payload) => {
+            const externalId = payload.data.externalId;
+            if (!externalId) return;
+
+            try {
+              const userService = getUserService();
+              await userService.updatePolarCustomerId(
+                externalId,
+                payload.data.id,
+              );
+            } catch (error) {
+              console.error('onCustomerCreated error:', error);
+            }
+          },
+
+          onSubscriptionCreated: async (payload) => {
+            const dto = mapPolarSubscriptionPayloadToDto(payload);
+            if (!dto) return;
+
+            try {
+              const subscriptionService = getSubscriptionService();
+              await subscriptionService.syncFromPolar(dto);
+            } catch (error) {
+              console.error('onSubscriptionCreated error:', error);
+            }
+          },
+
+          onSubscriptionUpdated: async (payload) => {
+            const dto = mapPolarSubscriptionPayloadToDto(payload);
+            if (!dto) return;
+
+            try {
+              const subscriptionService = getSubscriptionService();
+              await subscriptionService.syncFromPolar(dto);
+            } catch (error) {
+              console.error('onSubscriptionUpdated error:', error);
+            }
+          },
+
           onSubscriptionActive: async (payload) => {
-            console.log('onSubscriptionActive called');
+            const dto = mapPolarSubscriptionPayloadToDto(payload);
+            if (!dto) return;
 
-            if (!payload.data.customer.externalId) {
-              console.log('user not found');
-              return;
-            }
             try {
-              const userService = getUserService();
-              await userService.updatePlan(
-                payload.data.customer.externalId,
-                'pro',
-              );
+              const subscriptionService = getSubscriptionService();
+              await subscriptionService.syncFromPolar(dto);
             } catch (error) {
-              console.error(error);
+              console.error('onSubscriptionActive error:', error);
             }
           },
+
           onSubscriptionCanceled: async (payload) => {
-            console.log('onSubscriptionCanceled called');
+            const dto = mapPolarSubscriptionPayloadToDto(payload);
+            if (!dto) return;
 
-            if (!payload.data.customer.externalId) {
-              console.log('user not found');
-              return;
-            }
             try {
-              const userService = getUserService();
-              await userService.updatePlan(
-                payload.data.customer.externalId,
-                'free',
-              );
+              const subscriptionService = getSubscriptionService();
+              await subscriptionService.syncFromPolar(dto);
             } catch (error) {
-              console.error(error);
+              console.error('onSubscriptionCanceled error:', error);
             }
           },
-          onSubscriptionRevoked: async (payload) => {
-            console.log('onSubscriptionRevoked called');
 
-            if (!payload.data.customer.externalId) {
-              console.log('user not found');
-              return;
-            }
+          onSubscriptionRevoked: async (payload) => {
+            const dto = mapPolarSubscriptionPayloadToDto(payload);
+            if (!dto) return;
+
             try {
-              const userService = getUserService();
-              await userService.updatePlan(
-                payload.data.customer.externalId,
-                'free',
-              );
+              const subscriptionService = getSubscriptionService();
+              await subscriptionService.syncFromPolar(dto);
             } catch (error) {
-              console.error(error);
+              console.error('onSubscriptionRevoked error:', error);
             }
           },
         }),
