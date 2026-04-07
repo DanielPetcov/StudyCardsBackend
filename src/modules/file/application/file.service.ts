@@ -70,7 +70,7 @@ export class FileService {
         `Generating signed URL | fileId=${file.id} fileKey=${file.fileKey}`,
       );
 
-      const { url } = await this._storage.getSingedUrl(file.fileKey);
+      const { url } = await this._storage.getSignedUrl(file.fileKey);
 
       this.logger.log(`Signed URL generated | fileId=${file.id}`);
 
