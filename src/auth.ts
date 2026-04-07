@@ -43,6 +43,12 @@ export const auth = betterAuth({
     updateAge: 24 * 60 * 60,
     expiresIn: 7 * 24 * 60 * 60,
   },
+  advanced: {
+    defaultCookieAttributes: {
+      sameSite: 'none',
+      secure: true,
+    },
+  },
   user: {
     additionalFields: {
       language: {
