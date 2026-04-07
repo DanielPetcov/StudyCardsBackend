@@ -8,7 +8,10 @@ import {
   CardDifficulty,
   PlanType,
 } from '@/common/enums';
-import { CreateCardDto } from '@/modules/card/domain/dto/create-card.dto';
+import {
+  CreateCardDto,
+  CreateCardOptionDto,
+} from '@/modules/card/domain/dto/create-card.dto';
 import { getMaxCardsPerDeck } from '@/helpers';
 
 interface AIDeckAnalysis {
@@ -100,7 +103,15 @@ export class AiService {
         `Deck analysis completed | title="${normalized.title}" icon=${normalized.icon} cards=${normalized.cards.length}`,
       );
 
-      return normalized;
+      const shuffledResponse = {
+        ...normalized,
+        cards: normalized.cards.map((card) => ({
+          ...card,
+          options: this.shuffleOptions(card.options),
+        })),
+      };
+
+      return shuffledResponse;
     } catch (error) {
       this.logger.error(
         `Deck analysis failed | targetLanguage=${language} model=${this.model}`,
@@ -469,5 +480,21 @@ Remember:
     }
 
     return difficulty.toLowerCase() as CardDifficulty;
+  }
+
+  private shuffleOptions(
+    options: CreateCardOptionDto[],
+  ): CreateCardOptionDto[] {
+    const shuffled = [...options];
+
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    return shuffled.map((option, index) => ({
+      ...option,
+      order: index,
+    }));
   }
 }

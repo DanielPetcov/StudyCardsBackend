@@ -50,7 +50,7 @@ export class DeckService {
         throw new HttpException('User can not upload', HttpStatus.BAD_GATEWAY);
       }
 
-      const { plan } = await this._user.me(userId);
+      const { plan, language } = await this._user.me(userId);
 
       this.logger.log(
         `Uploading file | userId=${userId} fileName=${file.originalname}`,
@@ -72,7 +72,7 @@ export class DeckService {
         title: file.originalname.replace(/\.pdf$/i, ''),
         description: 'Processing...',
         fileId,
-        language: dto.language || 'en',
+        language: language,
         icon: 'clock',
         status: 'processing',
         cardCount: 0,
@@ -90,7 +90,7 @@ export class DeckService {
         userPlan: plan,
         fileId,
         fileKey,
-        language: dto.language || 'en',
+        language: language,
       });
 
       this.logger.log(
