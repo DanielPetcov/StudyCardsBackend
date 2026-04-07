@@ -54,7 +54,7 @@ export class StorageService {
     }
   }
 
-  async getSingedUrl(
+  async getSignedUrl(
     fileKey: string,
   ): Promise<{ url: string; expirationTime: number }> {
     const expirationTime = 3600;

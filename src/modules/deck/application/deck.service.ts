@@ -46,8 +46,9 @@ export class DeckService {
 
     try {
       const canUpload = await this._user.canUpload(userId);
+
       if (!canUpload) {
-        throw new HttpException('User can not upload', HttpStatus.BAD_GATEWAY);
+        throw new ForbiddenException('User cannot upload more files');
       }
 
       const { plan, language } = await this._user.me(userId);
@@ -65,21 +66,18 @@ export class DeckService {
 
       this.logger.log(`File uploaded | fileId=${fileId} fileKey=${fileKey}`);
 
-      this.logger.log(`Incrementing filesUploaded for user | userId=${userId}`);
-      await this._user.incrementUploads(userId);
-
       const deck = await this._repo.create({
         title: file.originalname.replace(/\.pdf$/i, ''),
         description: 'Processing...',
         fileId,
-        language: language,
+        language,
         icon: 'clock',
         status: 'processing',
         cardCount: 0,
         cardsStudied: 0,
         starred: false,
         archived: false,
-        userId: userId,
+        userId,
       });
 
       this.logger.log(`Deck created | deckId=${deck.id} status=processing`);
@@ -90,7 +88,7 @@ export class DeckService {
         userPlan: plan,
         fileId,
         fileKey,
-        language: language,
+        language,
       });
 
       this.logger.log(
@@ -105,9 +103,14 @@ export class DeckService {
     } catch (error) {
       this.logger.error(
         `Initiate upload failed | userId=${userId} fileName=${file.originalname}`,
-        error.stack,
+        error instanceof Error ? error.stack : String(error),
       );
-      throw new HttpException('Initial Upload Failed', HttpStatus.BAD_REQUEST);
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException('Initial upload failed', HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -142,7 +145,7 @@ export class DeckService {
     } catch (error) {
       this.logger.error(
         `Failed to build deck response | deckId=${deck.id}`,
-        error.stack,
+        error instanceof Error ? error.stack : String(error),
       );
       throw new HttpException(
         'Failed to get the pdfUrl',

@@ -68,7 +68,7 @@ export class AiService {
       );
 
       this.logger.log(
-        `Sending analysis request to AI | model=${this.model} promptLength=${prompt.length}`,
+        `Sending analysis request to AI | model=${this.model} promptLength=${prompt.length} maximumCards=${maximumCards}`,
       );
 
       const response = await this.openrouter.chat.send({
@@ -77,7 +77,7 @@ export class AiService {
           messages: [
             {
               role: 'system',
-              content: this.getSystemPrompt(),
+              content: this.getSystemPrompt(maximumCards),
             },
             {
               role: 'user',
@@ -85,14 +85,29 @@ export class AiService {
             },
           ],
           responseFormat: { type: 'json_object' },
-          temperature: 0.7,
-          maxTokens: 16000,
+          temperature: 0.2,
+          maxTokens: 12000,
         },
       });
 
       this.logger.log(`AI response received | model=${this.model}`);
 
-      const aiResponse = JSON.parse(response.choices[0].message.content);
+      const rawContent = response.choices?.[0]?.message?.content;
+
+      if (!rawContent || typeof rawContent !== 'string') {
+        throw new Error('AI returned an empty response');
+      }
+
+      let aiResponse: any;
+      try {
+        aiResponse = JSON.parse(rawContent);
+      } catch (error) {
+        this.logger.error(
+          `AI returned invalid JSON | contentLength=${rawContent.length}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+        throw new Error('AI returned invalid JSON');
+      }
 
       const normalized = this.validateAndNormalizeResponse(
         aiResponse,
@@ -115,9 +130,11 @@ export class AiService {
     } catch (error) {
       this.logger.error(
         `Deck analysis failed | targetLanguage=${language} model=${this.model}`,
-        error.stack,
+        error instanceof Error ? error.stack : undefined,
       );
-      throw new Error(`Failed to analyze deck: ${error.message}`);
+      throw new Error(
+        `Failed to analyze deck: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -136,7 +153,7 @@ export class AiService {
     } catch (error) {
       this.logger.error(
         `PDF extraction failed | bufferSize=${buffer.length}`,
-        error.stack,
+        error instanceof Error ? error.stack : undefined,
       );
       throw new Error('Failed to extract text from PDF');
     }
@@ -171,7 +188,7 @@ export class AiService {
     return detectedLang;
   }
 
-  private getSystemPrompt(): string {
+  private getSystemPrompt(maximumCards: number): string {
     return `You are an expert educational content analyzer and multiple-choice question creator. Your task is to:
 
 1. Analyze educational PDF content thoroughly
@@ -179,7 +196,7 @@ export class AiService {
 3. Organize cards in logical learning progression
 4. Assign appropriate difficulty levels based on concept complexity
 5. Choose the most relevant icon representing the main topic
-6. Generate between 15-50 cards depending on content depth
+6. Generate between 1 and ${maximumCards} cards, never more than ${maximumCards}
 
 Guidelines for Questions:
 - Questions should be clear, specific, and test understanding
@@ -187,7 +204,7 @@ Guidelines for Questions:
 - Only ONE option should be correct
 - Incorrect options should be plausible but clearly wrong (common misconceptions, related concepts)
 - Avoid "all of the above" or "none of the above" options
-- The correct answer should include a detailed explanation (2-4 sentences)
+- The correct answer should include a concise explanation (1-2 sentences)
 - Incorrect answers can optionally include brief explanations of why they're wrong
 
 Difficulty Levels:
@@ -197,7 +214,7 @@ Difficulty Levels:
 
 Card Ordering:
 - Order cards logically: foundational concepts first, advanced topics later
-- If content is limited, generate at least 1 card, up to 15 minimum when possible
+- Prefer fewer high-quality cards over many weak or repetitive ones
 
 Available icons and their meanings:
 - book-open: General knowledge, textbooks, reference material
@@ -239,8 +256,7 @@ Always respond with valid JSON only, no markdown formatting.`;
       ? `IMPORTANT: The PDF is in ${pdfLanguage}, but you must translate ALL questions, answer options, and explanations to ${targetLanguage}.`
       : `Generate cards in ${targetLanguage}, the same language as the PDF content.`;
 
-    // Truncate PDF text if too long (keep first 80% of char limit for model)
-    const maxTextLength = 100000; // Adjust based on model context window
+    const maxTextLength = 40000;
     const truncatedText =
       pdfText.length > maxTextLength
         ? pdfText.substring(0, maxTextLength) +
@@ -248,7 +264,7 @@ Always respond with valid JSON only, no markdown formatting.`;
         : pdfText;
 
     this.logger.debug(
-      `Analysis prompt built | targetLanguage=${targetLanguage} pdfLanguage=${pdfLanguage} needsTranslation=${needsTranslation} truncated=${pdfText.length > maxTextLength}`,
+      `Analysis prompt built | targetLanguage=${targetLanguage} pdfLanguage=${pdfLanguage} needsTranslation=${needsTranslation} truncated=${pdfText.length > maxTextLength} maximumCards=${maximumCards}`,
     );
 
     return `${translationNote}
@@ -259,12 +275,13 @@ ${truncatedText}
 Analyze this educational content and create a comprehensive deck of multiple-choice study cards.
 
 Requirements:
-1. Generate 15-${maximumCards} cards (more cards for longer/denser content)
-2. Create a clear, descriptive title (max 100 characters)
-3. Write a brief description of what the deck covers (2-3 sentences)
-4. Choose the most appropriate icon from the available list
-5. Order cards in logical learning progression (foundational → advanced)
-6. Assign difficulty based on concept complexity:
+1. Generate between 1 and ${maximumCards} cards, but never more than ${maximumCards}
+2. Prefer fewer high-quality cards over many repetitive or weak cards
+3. Create a clear, descriptive title (max 100 characters)
+4. Write a brief description of what the deck covers (2-3 sentences)
+5. Choose the most appropriate icon from the available list
+6. Order cards in logical learning progression (foundational → advanced)
+7. Assign difficulty based on concept complexity:
    - easy: Basic facts, definitions, simple recall
    - medium: Understanding, application, connections
    - hard: Analysis, synthesis, complex reasoning
@@ -272,7 +289,7 @@ Requirements:
 Multiple-Choice Format:
 - Each card must have exactly 4 answer options
 - Only ONE option is correct (isCorrect: true)
-- The correct option MUST include a detailed explanation (2-4 sentences)
+- The correct option MUST include a concise explanation (1-2 sentences)
 - Incorrect options should be plausible distractors (common mistakes, related concepts)
 - Order options logically (don't always put correct answer first)
 - Vary the position of correct answers across cards
@@ -291,7 +308,7 @@ Respond with JSON in this exact format:
         {
           "text": "A function that has access to variables in its outer scope",
           "isCorrect": true,
-          "explanation": "A closure is formed when a function is defined inside another function, giving it access to the outer function's variables even after the outer function has returned. This is a fundamental concept in JavaScript's lexical scoping.",
+          "explanation": "A closure is formed when a function can still access variables from its outer lexical scope after that outer function has finished executing.",
           "order": 0
         },
         {
@@ -326,6 +343,7 @@ Remember:
 - Correct answer must have explanation
 - Logical order progression (card order: 0, 1, 2, ...)
 - Option order: 0, 1, 2, 3
+- Never return more than ${maximumCards} cards
 - Valid JSON only, no markdown`;
   }
 
@@ -333,7 +351,6 @@ Remember:
     aiResponse: any,
     maximumCards: number,
   ): AIDeckAnalysis {
-    // 1. Validate top-level structure
     if (
       !aiResponse.title ||
       !aiResponse.description ||
@@ -349,7 +366,6 @@ Remember:
       throw new Error('Invalid AI response structure');
     }
 
-    // 2. Validate icon
     const validIcons = [
       'book-open',
       'brain',
@@ -384,7 +400,6 @@ Remember:
       aiResponse.icon = 'book-open';
     }
 
-    // 3. Validate and normalize cards
     const cards: CreateCardDto[] = aiResponse.cards
       .filter((card: any) => {
         if (!card.question || !Array.isArray(card.options)) {
@@ -405,6 +420,7 @@ Remember:
         const correctCount = card.options.filter(
           (opt: any) => opt.isCorrect,
         ).length;
+
         if (correctCount !== 1) {
           this.logger.debug(
             `Card filtered out | expected 1 correct option, got ${correctCount}`,
@@ -413,6 +429,7 @@ Remember:
         }
 
         const correctOption = card.options.find((opt: any) => opt.isCorrect);
+
         if (!correctOption?.explanation) {
           this.logger.debug(
             'Card filtered out | correct option missing explanation',
@@ -425,15 +442,14 @@ Remember:
       .map((card: any, cardIndex: number) => ({
         question: card.question.trim(),
         difficulty: this.validateDifficulty(card.difficulty),
-        order: card.order ?? cardIndex,
+        order: cardIndex,
         options: card.options.map((option: any, optionIndex: number) => ({
           text: option.text?.trim() || '',
           isCorrect: option.isCorrect === true,
           explanation: option.explanation?.trim() || null,
-          order: option.order ?? optionIndex,
+          order: optionIndex,
         })),
-      }))
-      .slice(0, 50);
+      }));
 
     if (cards.length === 0) {
       this.logger.error(
@@ -446,26 +462,30 @@ Remember:
       throw new Error('AI generated no valid cards');
     }
 
-    if (cards.length < 15) {
-      this.logger.warn(`Low card count generated | cards=${cards.length}`);
-    }
+    const trimmedCards = cards.slice(0, maximumCards);
 
     if (cards.length > maximumCards) {
-      this.logger.error(
-        `Card count over the maximum allowed | maximumCards=${maximumCards}`,
+      this.logger.warn(
+        `AI returned too many valid cards | received=${cards.length} maximumCards=${maximumCards} trimmed=${trimmedCards.length}`,
       );
-      throw new Error('Card count over the maximum allowed');
+    }
+
+    const lowCardWarningThreshold = Math.min(5, maximumCards);
+    if (trimmedCards.length < lowCardWarningThreshold) {
+      this.logger.warn(
+        `Low card count generated | cards=${trimmedCards.length} maximumCards=${maximumCards}`,
+      );
     }
 
     this.logger.log(
-      `Deck analysis validated | cards=${cards.length} icon=${aiResponse.icon}`,
+      `Deck analysis validated | cards=${trimmedCards.length} icon=${aiResponse.icon}`,
     );
 
     return {
       title: aiResponse.title.trim().substring(0, 255),
       description: aiResponse.description.trim(),
       icon: aiResponse.icon as DeckIconName,
-      cards,
+      cards: trimmedCards,
     };
   }
 

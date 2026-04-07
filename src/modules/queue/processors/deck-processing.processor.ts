@@ -11,6 +11,7 @@ import {
   DECK_REPOSITORY,
   type IDeckRepository,
 } from '@/modules/deck/domain/deck.repository.interface';
+import { UserService } from '@/modules/user/application/user.service';
 
 @Processor('deck-processing')
 export class DeckProcessingProcessor {
@@ -20,13 +21,14 @@ export class DeckProcessingProcessor {
     private readonly _ai: AiService,
     private readonly _card: CardService,
     private readonly _storage: StorageService,
+    private readonly _user: UserService,
     @Inject(forwardRef(() => DECK_REPOSITORY))
     private readonly _deckRepo: IDeckRepository,
   ) {}
 
   @Process('process-deck')
   async processDeck(job: Job<DeckProcessingJobData>): Promise<void> {
-    const { deckId, userId, userPlan, fileId, fileKey, language } = job.data;
+    const { deckId, userId, userPlan, fileKey, language } = job.data;
 
     this.logger.log(
       `Process deck started | jobId=${job.id} deckId=${deckId} userId=${userId}`,
@@ -36,8 +38,15 @@ export class DeckProcessingProcessor {
       // 1. Download file
       this.logger.log(`Downloading file | deckId=${deckId} fileKey=${fileKey}`);
 
-      const { url } = await this._storage.getSingedUrl(fileKey);
+      const { url } = await this._storage.getSignedUrl(fileKey);
       const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to download file from storage: ${response.status} ${response.statusText}`,
+        );
+      }
+
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
@@ -54,18 +63,17 @@ export class DeckProcessingProcessor {
         `AI analysis completed | deckId=${deckId} cards=${aiAnalysis.cards.length} icon=${aiAnalysis.icon}`,
       );
 
-      // 3. Update deck
-      this.logger.log(`Updating deck | deckId=${deckId} status=ready`);
+      // 3. Update deck metadata first (without marking ready yet)
+      this.logger.log(`Updating deck metadata | deckId=${deckId}`);
 
       await this._deckRepo.update(deckId, userId, {
         title: aiAnalysis.title,
         description: aiAnalysis.description,
         icon: aiAnalysis.icon,
         cardCount: aiAnalysis.cards.length,
-        status: 'ready',
       });
 
-      this.logger.log(`Deck updated | deckId=${deckId}`);
+      this.logger.log(`Deck metadata updated | deckId=${deckId}`);
 
       // 4. Create cards
       this.logger.log(
@@ -76,13 +84,23 @@ export class DeckProcessingProcessor {
 
       this.logger.log(`Bulk create cards completed | deckId=${deckId}`);
 
+      // 5. Increment uploads for user
+      await this._user.incrementUploads(userId);
+
+      this.logger.log(`User uploads incremented | userId=${userId}`);
+
+      // 6. Mark deck ready only after cards were created successfully
+      await this._deckRepo.updateStatus(deckId, 'ready');
+
+      this.logger.log(`Deck marked as ready | deckId=${deckId}`);
+
       this.logger.log(
         `Process deck completed | jobId=${job.id} deckId=${deckId}`,
       );
     } catch (error) {
       this.logger.error(
         `Process deck failed | jobId=${job.id} deckId=${deckId}`,
-        error.stack,
+        error instanceof Error ? error.stack : String(error),
       );
 
       await this._deckRepo.updateStatus(deckId, 'failed');
