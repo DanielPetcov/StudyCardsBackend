@@ -31,7 +31,10 @@ export const auth = betterAuth({
   basePath: '/api/auth',
   database: drizzleAdapter(db, { provider: 'pg' }),
   emailAndPassword: { enabled: true },
-  trustedOrigins: [process.env.FRONTEND_URL!],
+  trustedOrigins: [
+    'http://localhost:3000',
+    'https://study-cards-amber.vercel.app',
+  ],
   session: {
     cookieCache: {
       enabled: true,

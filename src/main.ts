@@ -8,12 +8,13 @@ async function bootstrap() {
     bodyParser: false,
   });
   app.enableCors({
-    origin: process.env.FRONTEND_URL,
+    origin: ['http://localhost:3000', 'https://study-cards-amber.vercel.app'],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
   setAppContext(app);
-  await app.listen(process.env.PORT ?? 4000);
+  await app.listen(process.env.PORT ?? 4000, '0.0.0.0');
 }
 bootstrap();
