@@ -11,6 +11,9 @@ import { UserService } from './modules/user/application/user.service';
 import { SubscriptionService } from './modules/subscription/application/subscription.service';
 import { mapPolarSubscriptionPayloadToDto } from './helpers';
 
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 function getUserService() {
   return getAppContext().get(UserService);
 }
@@ -21,7 +24,7 @@ function getSubscriptionService() {
 
 const polarClient = new Polar({
   accessToken: process.env.POLAR_ACCESS_TOKEN,
-  server: 'sandbox',
+  server: 'production',
 });
 
 export const auth = betterAuth({
@@ -58,7 +61,7 @@ export const auth = betterAuth({
       createCustomerOnSignUp: true,
       use: [
         checkout({
-          successUrl: 'http://localhost:3000/dashboard?payment=success',
+          successUrl: `${process.env.FRONTEND_URL}/dashboard?payment=success`,
           authenticatedUsersOnly: true,
         }),
         webhooks({
