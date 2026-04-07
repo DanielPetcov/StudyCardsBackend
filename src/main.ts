@@ -12,7 +12,7 @@ async function bootstrap() {
     bodyParser: false,
   });
   app.enableCors({
-    origin: ['http://localhost:3000', 'https://study-cards-amber.vercel.app'],
+    origin: ['http://localhost:3000', 'https://studycards.online'],
     credentials: true,
 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
