@@ -40,12 +40,12 @@ export const auth = betterAuth({
     updateAge: 24 * 60 * 60,
     expiresIn: 7 * 24 * 60 * 60,
   },
-  advanced: {
-    crossSubDomainCookies: {
-      enabled: true,
-      domain: 'studycards.online',
-    },
-  },
+  // advanced: {
+  //   crossSubDomainCookies: {
+  //     enabled: true,
+  //     domain: 'studycards.online',
+  //   },
+  // },
   user: {
     additionalFields: {
       language: {

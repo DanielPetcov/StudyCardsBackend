@@ -12,15 +12,22 @@ import { StorageModule } from './modules/storage/storage.module';
 import { UserModule } from './modules/user/user.module';
 import { FileModule } from './modules/file/file.module';
 import { QueueModule } from './modules/queue/queue.module';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 
 import * as dotenv from 'dotenv';
 import { AppController } from './app.controller';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
+import { getRedisConnectionOptions } from './modules/queue/application/redis-connection';
 dotenv.config();
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    BullModule.forRoot({
+      connection: getRedisConnectionOptions(),
+    }),
+    AuthModule.forRoot({ auth, isGlobal: true }),
+
     AiModule,
     CardModule,
     DatabaseModule,
@@ -30,17 +37,6 @@ dotenv.config();
     FileModule,
     QueueModule,
     SubscriptionModule,
-
-    BullModule.forRoot({
-      redis: {
-        host: process.env.REDIS_HOST,
-        port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
-        password: process.env.REDIS_PASSWORD,
-        tls: {},
-      },
-    }),
-    AuthModule.forRoot({ auth, isGlobal: true }),
-    ConfigModule.forRoot({ isGlobal: true }),
   ],
   controllers: [AppController],
 })

@@ -1,7 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
-import type { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import type { Queue } from 'bullmq';
+
 import { LanguageType, PlanType } from '@/common/enums';
+import {
+  DECK_PROCESSING_QUEUE,
+  PROCESS_DECK_JOB,
+} from './queue';
 
 export interface DeckProcessingJobData {
   deckId: string;
@@ -16,33 +21,20 @@ export interface DeckProcessingJobData {
 export class QueueService {
   private readonly logger = new Logger(QueueService.name);
 
-  constructor(@InjectQueue('deck-processing') private readonly queue: Queue) {}
+  constructor(
+    @InjectQueue(DECK_PROCESSING_QUEUE)
+    private readonly deckQueue: Queue<DeckProcessingJobData>,
+  ) {}
 
   async addDeckProcessingJob(data: DeckProcessingJobData): Promise<void> {
     this.logger.log(
-      `Queue job started | deckId=${data.deckId} userId=${data.userId} fileId=${data.fileId}`,
+      `Queue job add started | deckId=${data.deckId} userId=${data.userId}`,
     );
 
-    try {
-      const job = await this.queue.add('process-deck', data, {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
-        },
-        removeOnComplete: true,
-        removeOnFail: false,
-      });
+    const job = await this.deckQueue.add(PROCESS_DECK_JOB, data, {
+      jobId: data.deckId,
+    });
 
-      this.logger.log(
-        `Queue job added | jobId=${job.id} deckId=${data.deckId}`,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Queue job failed | deckId=${data.deckId} userId=${data.userId}`,
-        error.stack,
-      );
-      throw error;
-    }
+    this.logger.log(`Queue job added | jobId=${job.id} deckId=${data.deckId}`);
   }
 }
