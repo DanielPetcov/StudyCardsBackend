@@ -31,7 +31,12 @@ export const auth = betterAuth({
   basePath: '/api/auth',
   database: drizzleAdapter(db, { provider: 'pg' }),
   emailAndPassword: { enabled: true },
-  trustedOrigins: ['http://localhost:3000', 'https://studycards.online'],
+  trustedOrigins: [
+    'http://localhost:3000',
+    'https://studycards.online',
+    'https://www.studycards.online',
+    'https://api.studycards.online',
+  ],
   session: {
     cookieCache: {
       enabled: true,
@@ -40,12 +45,14 @@ export const auth = betterAuth({
     updateAge: 24 * 60 * 60,
     expiresIn: 7 * 24 * 60 * 60,
   },
-  // advanced: {
-  //   crossSubDomainCookies: {
-  //     enabled: true,
-  //     domain: 'studycards.online',
-  //   },
-  // },
+
+  advanced: {
+    useSecureCookies: true,
+    crossSubDomainCookies: {
+      enabled: true,
+      domain: '.studycards.online',
+    },
+  },
   user: {
     additionalFields: {
       language: {
